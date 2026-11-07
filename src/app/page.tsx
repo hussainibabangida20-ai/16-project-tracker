@@ -1,4 +1,6 @@
+import Link from "next/link";
 import { getProjects } from "@/lib/queries";
+import ProjectForm from "@/app/projects/ProjectForm";
 
 export const dynamic = "force-dynamic";
 
@@ -19,13 +21,17 @@ export default async function HomePage() {
         </p>
       </header>
 
+      <div className="mb-10">
+        <ProjectForm />
+      </div>
+
       {projects.length === 0 ? (
         <section className="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-14 text-center">
           <h2 className="text-lg font-semibold text-slate-900">
             No projects yet
           </h2>
           <p className="mt-2 text-sm text-slate-600">
-            Projects you create will show up here.
+            Create a project above to get started.
           </p>
         </section>
       ) : (
@@ -53,7 +59,12 @@ export default async function HomePage() {
                 />
                 <div className="p-6">
                   <h2 className="text-xl font-semibold text-slate-950">
-                    {project.name}
+                    <Link
+                      className="rounded-sm hover:text-indigo-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+                      href={`/projects/${project.id}`}
+                    >
+                      {project.name}
+                    </Link>
                   </h2>
                   <p className="mt-2 min-h-12 text-sm leading-6 text-slate-600">
                     {project.description || "No description provided."}
