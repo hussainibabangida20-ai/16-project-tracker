@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import type { Metadata } from "next";
 import DeleteProjectButton from "@/app/projects/DeleteProjectButton";
 import KanbanBoard from "@/app/projects/KanbanBoard";
 import TaskForm from "@/app/projects/TaskForm";
@@ -7,6 +8,24 @@ import { getProject, getTasks } from "@/lib/queries";
 import { IdInput, TaskPrioritySchema } from "@/lib/validation";
 
 export const dynamic = "force-dynamic";
+
+type ProjectRouteParams = Promise<{ id: string }>;
+
+export async function generateMetadata({
+  params,
+}: {
+  params: ProjectRouteParams;
+}): Promise<Metadata> {
+  const { id } = await params;
+  const parsedId = IdInput.safeParse(id);
+  if (!parsedId.success) return { title: "Project not found" };
+
+  const project = await getProject(parsedId.data);
+  return {
+    title: project ? `${project.name} | Project Tracker` : "Project not found",
+    description: project?.description || "View project tasks and progress.",
+  };
+}
 
 type SearchParams = {
   priority?: string | string[];
@@ -21,7 +40,7 @@ export default async function ProjectPage({
   params,
   searchParams,
 }: {
-  params: Promise<{ id: string }>;
+  params: ProjectRouteParams;
   searchParams: Promise<SearchParams>;
 }) {
   const [{ id }, query] = await Promise.all([params, searchParams]);

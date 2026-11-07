@@ -19,6 +19,12 @@ export default async function HomePage() {
         <p className="mt-3 max-w-2xl text-base leading-7 text-slate-600">
           Keep an eye on your projects and see how much work is complete.
         </p>
+        <Link
+          className="mt-4 inline-flex rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+          href="/stats"
+        >
+          View statistics
+        </Link>
       </header>
 
       <div className="mb-10">
