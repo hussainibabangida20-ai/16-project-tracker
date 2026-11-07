@@ -22,12 +22,14 @@ export interface Task {
   status: TaskStatus;
   priority: TaskPriority;
   due_date: string | null;
+  is_overdue: boolean;
   created_at: string;
 }
 
 export interface TaskFilters {
   status?: TaskStatus;
   priority?: TaskPriority;
+  q?: string;
 }
 
 export async function getProjects(): Promise<ProjectSummary[]> {
@@ -73,6 +75,7 @@ export async function getTasks(
 ): Promise<Task[]> {
   const status = filters.status ?? null;
   const priority = filters.priority ?? null;
+  const search = filters.q ? `%${filters.q}%` : null;
 
   return (await sql`
     SELECT
@@ -82,11 +85,13 @@ export async function getTasks(
       t.status,
       t.priority,
       t.due_date::text AS due_date,
+      (t.due_date < CURRENT_DATE) AS is_overdue,
       t.created_at::text AS created_at
     FROM tasks AS t
     WHERE t.project_id = ${projectId}
       AND (${status}::text IS NULL OR t.status = ${status})
       AND (${priority}::text IS NULL OR t.priority = ${priority})
+      AND (${search}::text IS NULL OR t.title ILIKE ${search})
     ORDER BY t.created_at DESC, t.id DESC
   `) as Task[];
 }
