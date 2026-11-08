@@ -7,7 +7,11 @@ const initialState: ActionState = { ok: false, errors: {} };
 
 function FieldError({ errors }: { errors?: string[] }) {
   if (!errors?.length) return null;
-  return <p className="mt-1 text-sm text-red-700">{errors[0]}</p>;
+  return (
+    <p className="mt-1 text-sm text-red-700" role="alert">
+      {errors[0]}
+    </p>
+  );
 }
 
 export default function TaskForm({ projectId }: { projectId: number }) {
@@ -31,17 +35,24 @@ export default function TaskForm({ projectId }: { projectId: number }) {
           Title
           <input
             aria-invalid={Boolean(state.errors.title)}
+            aria-describedby={state.errors.title ? "task-title-error" : undefined}
             className="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-950"
             maxLength={140}
             minLength={2}
             name="title"
             required
           />
-          <FieldError errors={state.errors.title} />
+          {state.errors.title && (
+            <p className="mt-1 text-sm text-red-700" id="task-title-error">
+              {state.errors.title[0]}
+            </p>
+          )}
         </label>
         <label className="text-sm font-medium text-slate-700">
           Status
           <select
+            aria-invalid={Boolean(state.errors.status)}
+            aria-describedby={state.errors.status ? "task-status-error" : undefined}
             className="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-950"
             defaultValue="todo"
             name="status"
@@ -50,11 +61,19 @@ export default function TaskForm({ projectId }: { projectId: number }) {
             <option value="doing">In progress</option>
             <option value="done">Done</option>
           </select>
-          <FieldError errors={state.errors.status} />
+          {state.errors.status && (
+            <p className="mt-1 text-sm text-red-700" id="task-status-error">
+              {state.errors.status[0]}
+            </p>
+          )}
         </label>
         <label className="text-sm font-medium text-slate-700">
           Priority
           <select
+            aria-invalid={Boolean(state.errors.priority)}
+            aria-describedby={
+              state.errors.priority ? "task-priority-error" : undefined
+            }
             className="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-950"
             defaultValue="medium"
             name="priority"
@@ -63,17 +82,28 @@ export default function TaskForm({ projectId }: { projectId: number }) {
             <option value="medium">Medium</option>
             <option value="high">High</option>
           </select>
-          <FieldError errors={state.errors.priority} />
+          {state.errors.priority && (
+            <p className="mt-1 text-sm text-red-700" id="task-priority-error">
+              {state.errors.priority[0]}
+            </p>
+          )}
         </label>
         <label className="text-sm font-medium text-slate-700 sm:col-span-2">
           Due date <span className="font-normal text-slate-500">(optional)</span>
           <input
             aria-invalid={Boolean(state.errors.due_date)}
+            aria-describedby={
+              state.errors.due_date ? "task-due-date-error" : undefined
+            }
             className="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-950"
             name="due_date"
             type="date"
           />
-          <FieldError errors={state.errors.due_date} />
+          {state.errors.due_date && (
+            <p className="mt-1 text-sm text-red-700" id="task-due-date-error">
+              {state.errors.due_date[0]}
+            </p>
+          )}
         </label>
       </div>
       <FieldError errors={state.errors.projectId} />

@@ -36,6 +36,11 @@ function invalidProject(): ActionState {
   return { ok: false, errors: { projectId: ["Project not found."] } };
 }
 
+function databaseFailure(action: string, message: string): ActionState {
+  console.error(`Database action failed: ${action}.`);
+  return { ok: false, errors: { _form: [message] } };
+}
+
 export async function createProject(
   _previousState: ActionState,
   formData: FormData,
@@ -48,10 +53,17 @@ export async function createProject(
 
   if (!parsed.success) return validationFailure(parsed.error);
 
-  await sql`
-    INSERT INTO projects (name, description, color)
-    VALUES (${parsed.data.name}, ${parsed.data.description}, ${parsed.data.color})
-  `;
+  try {
+    await sql`
+      INSERT INTO projects (name, description, color)
+      VALUES (${parsed.data.name}, ${parsed.data.description}, ${parsed.data.color})
+    `;
+  } catch {
+    return databaseFailure(
+      "create project",
+      "Could not create the project. Please try again.",
+    );
+  }
   revalidatePath("/");
 
   return { ...initialActionState, ok: true, message: "Project created." };
@@ -72,13 +84,21 @@ export async function createTask(
   if (!parsed.success) return validationFailure(parsed.error);
 
   const { projectId, title, status, priority, due_date } = parsed.data;
-  const inserted = await sql`
-    INSERT INTO tasks (project_id, title, status, priority, due_date)
-    SELECT p.id, ${title}, ${status}, ${priority}, ${due_date ?? null}::date
-    FROM projects AS p
-    WHERE p.id = ${projectId}
-    RETURNING id
-  `;
+  let inserted;
+  try {
+    inserted = await sql`
+      INSERT INTO tasks (project_id, title, status, priority, due_date)
+      SELECT p.id, ${title}, ${status}, ${priority}, ${due_date ?? null}::date
+      FROM projects AS p
+      WHERE p.id = ${projectId}
+      RETURNING id
+    `;
+  } catch {
+    return databaseFailure(
+      "create task",
+      "Could not add the task. Please try again.",
+    );
+  }
 
   if (inserted.length === 0) return invalidProject();
 
@@ -101,12 +121,20 @@ export async function updateTaskStatus(
   if (!parsed.success) return validationFailure(parsed.error);
 
   const { projectId, taskId, status } = parsed.data;
-  const updated = await sql`
-    UPDATE tasks
-    SET status = ${status}
-    WHERE id = ${taskId} AND project_id = ${projectId}
-    RETURNING id
-  `;
+  let updated;
+  try {
+    updated = await sql`
+      UPDATE tasks
+      SET status = ${status}
+      WHERE id = ${taskId} AND project_id = ${projectId}
+      RETURNING id
+    `;
+  } catch {
+    return databaseFailure(
+      "update task status",
+      "Could not update the task. Please try again.",
+    );
+  }
 
   if (updated.length === 0) {
     return { ok: false, errors: { taskId: ["Task not found in this project."] } };
@@ -130,11 +158,19 @@ export async function deleteTask(
   if (!parsed.success) return validationFailure(parsed.error);
 
   const { projectId, taskId } = parsed.data;
-  const deleted = await sql`
-    DELETE FROM tasks
-    WHERE id = ${taskId} AND project_id = ${projectId}
-    RETURNING id
-  `;
+  let deleted;
+  try {
+    deleted = await sql`
+      DELETE FROM tasks
+      WHERE id = ${taskId} AND project_id = ${projectId}
+      RETURNING id
+    `;
+  } catch {
+    return databaseFailure(
+      "delete task",
+      "Could not delete the task. Please try again.",
+    );
+  }
 
   if (deleted.length === 0) {
     return { ok: false, errors: { taskId: ["Task not found in this project."] } };
@@ -157,11 +193,19 @@ export async function deleteProject(
   if (!parsed.success) return validationFailure(parsed.error);
 
   const { projectId } = parsed.data;
-  const deleted = await sql`
-    DELETE FROM projects
-    WHERE id = ${projectId}
-    RETURNING id
-  `;
+  let deleted;
+  try {
+    deleted = await sql`
+      DELETE FROM projects
+      WHERE id = ${projectId}
+      RETURNING id
+    `;
+  } catch {
+    return databaseFailure(
+      "delete project",
+      "Could not delete the project. Please try again.",
+    );
+  }
 
   if (deleted.length === 0) return invalidProject();
 

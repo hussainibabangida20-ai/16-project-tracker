@@ -10,7 +10,7 @@ export default function ErrorPage({
   reset: () => void;
 }) {
   useEffect(() => {
-    console.error(error);
+    console.error("Application route failed.", { digest: error.digest });
   }, [error]);
 
   return (
@@ -20,7 +20,7 @@ export default function ErrorPage({
           Something went wrong
         </h1>
         <p className="mt-3 text-sm leading-6 text-slate-600">
-          We couldn&apos;t load your projects. Please try again.
+          We couldn&apos;t complete your request. Please try again.
         </p>
         <button
           className="mt-6 rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"

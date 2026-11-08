@@ -59,8 +59,8 @@ export default function KanbanBoard({
       try {
         const result = await updateTaskStatus(initialState, formData);
         if (!result.ok) setErrorMessage(actionError(result));
-      } catch (error) {
-        console.error("Failed to update task status.", error);
+      } catch {
+        console.error("Failed to update task status.");
         setErrorMessage("Could not update the task. Please try again.");
       }
     });
@@ -80,8 +80,8 @@ export default function KanbanBoard({
       try {
         const result = await deleteTask(initialState, formData);
         if (!result.ok) setErrorMessage(actionError(result));
-      } catch (error) {
-        console.error("Failed to delete task.", error);
+      } catch {
+        console.error("Failed to delete task.");
         setErrorMessage("Could not delete the task. Please try again.");
       }
     });

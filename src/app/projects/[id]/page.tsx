@@ -103,10 +103,10 @@ export default async function ProjectPage({
           className="flex flex-wrap items-end gap-3"
           method="get"
         >
-          <label className="text-sm font-medium text-slate-700">
+          <label className="w-full text-sm font-medium text-slate-700 sm:w-auto">
             Search tasks
             <input
-              className="mt-1 block rounded-lg border border-slate-300 bg-white px-3 py-2"
+              className="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 sm:w-auto"
               defaultValue={search}
               maxLength={100}
               name="q"
@@ -114,10 +114,10 @@ export default async function ProjectPage({
               type="search"
             />
           </label>
-          <label className="text-sm font-medium text-slate-700">
+          <label className="w-full text-sm font-medium text-slate-700 sm:w-auto">
             Priority
             <select
-              className="mt-1 block rounded-lg border border-slate-300 bg-white px-3 py-2"
+              className="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 sm:w-auto"
               defaultValue={parsedPriority.success ? parsedPriority.data : ""}
               name="priority"
             >

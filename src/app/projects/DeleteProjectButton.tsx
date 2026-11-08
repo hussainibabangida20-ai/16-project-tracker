@@ -16,6 +16,8 @@ export default function DeleteProjectButton({
     initialState,
   );
   const router = useRouter();
+  const errorMessage =
+    state.errors.projectId?.[0] ?? state.errors._form?.[0];
 
   useEffect(() => {
     if (state.ok) router.push("/");
@@ -31,9 +33,9 @@ export default function DeleteProjectButton({
       >
         {pending ? "Deleting..." : "Delete project"}
       </button>
-      {state.errors.projectId && (
+      {errorMessage && (
         <p className="mt-2 text-sm text-red-700" role="alert">
-          {state.errors.projectId[0]}
+          {errorMessage}
         </p>
       )}
     </form>

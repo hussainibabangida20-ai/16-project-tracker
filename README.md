@@ -51,6 +51,10 @@ npm start
 ```
 
 Set `DATABASE_URL` in the deployment environment before deploying.
+`next.config.ts` applies security headers to all routes, including a content
+security policy. Inline scripts and styles are permitted for Next.js rendering
+and the app's color styling; avoid adding third-party scripts without updating
+that policy.
 
 ## Schema overview
 

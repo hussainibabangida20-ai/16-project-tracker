@@ -7,7 +7,11 @@ const initialState: ActionState = { ok: false, errors: {} };
 
 function FieldError({ errors }: { errors?: string[] }) {
   if (!errors?.length) return null;
-  return <p className="mt-1 text-sm text-red-700">{errors[0]}</p>;
+  return (
+    <p className="mt-1 text-sm text-red-700" role="alert">
+      {errors[0]}
+    </p>
+  );
 }
 
 export default function ProjectForm() {
@@ -33,35 +37,55 @@ export default function ProjectForm() {
           Name
           <input
             aria-invalid={Boolean(state.errors.name)}
+            aria-describedby={state.errors.name ? "project-name-error" : undefined}
             className="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-950"
             maxLength={80}
             name="name"
             required
             minLength={2}
           />
-          <FieldError errors={state.errors.name} />
+          {state.errors.name && (
+            <p className="mt-1 text-sm text-red-700" id="project-name-error">
+              {state.errors.name[0]}
+            </p>
+          )}
         </label>
         <label className="text-sm font-medium text-slate-700">
           Color
           <input
             aria-invalid={Boolean(state.errors.color)}
+            aria-describedby={state.errors.color ? "project-color-error" : undefined}
             className="mt-1 block h-10 w-full rounded-lg border border-slate-300 px-2"
             defaultValue="#6366f1"
             name="color"
             type="color"
           />
-          <FieldError errors={state.errors.color} />
+          {state.errors.color && (
+            <p className="mt-1 text-sm text-red-700" id="project-color-error">
+              {state.errors.color[0]}
+            </p>
+          )}
         </label>
         <label className="text-sm font-medium text-slate-700 sm:col-span-2">
           Description
           <textarea
             aria-invalid={Boolean(state.errors.description)}
+            aria-describedby={
+              state.errors.description ? "project-description-error" : undefined
+            }
             className="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-950"
             maxLength={1000}
             name="description"
             rows={2}
           />
-          <FieldError errors={state.errors.description} />
+          {state.errors.description && (
+            <p
+              className="mt-1 text-sm text-red-700"
+              id="project-description-error"
+            >
+              {state.errors.description[0]}
+            </p>
+          )}
         </label>
       </div>
       <FieldError errors={state.errors._form} />
