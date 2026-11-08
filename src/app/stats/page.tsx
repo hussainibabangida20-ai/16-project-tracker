@@ -4,6 +4,7 @@ import {
   getProjectStats,
   type OverallStats,
 } from "@/lib/queries";
+import { requireUser } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
@@ -153,9 +154,10 @@ function OverdueTasks({ tasks }: { tasks: OverallStats["overdue_tasks"] }) {
 }
 
 export default async function StatsPage() {
+  const user = await requireUser();
   const [stats, projects] = await Promise.all([
-    getOverallStats(),
-    getProjectStats(),
+    getOverallStats(user.id),
+    getProjectStats(user.id),
   ]);
   const completion =
     stats.total_tasks === 0

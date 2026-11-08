@@ -1,11 +1,13 @@
 import Link from "next/link";
 import { getProjects } from "@/lib/queries";
 import ProjectForm from "@/app/projects/ProjectForm";
+import { requireUser } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  const projects = await getProjects();
+  const user = await requireUser();
+  const projects = await getProjects(user.id);
 
   return (
     <main className="mx-auto min-h-screen max-w-6xl px-6 py-12 sm:px-10">

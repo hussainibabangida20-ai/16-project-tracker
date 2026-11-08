@@ -53,5 +53,11 @@ export const DeleteProjectInput = z.object({
   projectId: IdInput,
 });
 
+export const TaskCommentInput = z.object({
+  projectId: IdInput,
+  taskId: IdInput,
+  body: z.string().trim().min(1).max(2000),
+});
+
 export type TaskStatus = z.infer<typeof TaskStatusSchema>;
 export type TaskPriority = z.infer<typeof TaskPrioritySchema>;

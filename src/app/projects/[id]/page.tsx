@@ -4,7 +4,8 @@ import type { Metadata } from "next";
 import DeleteProjectButton from "@/app/projects/DeleteProjectButton";
 import KanbanBoard from "@/app/projects/KanbanBoard";
 import TaskForm from "@/app/projects/TaskForm";
-import { getProject, getTasks } from "@/lib/queries";
+import { getProject, getTaskComments, getTasks } from "@/lib/queries";
+import { requireUser } from "@/lib/session";
 import { IdInput, TaskPrioritySchema } from "@/lib/validation";
 
 export const dynamic = "force-dynamic";
@@ -16,11 +17,12 @@ export async function generateMetadata({
 }: {
   params: ProjectRouteParams;
 }): Promise<Metadata> {
+  const user = await requireUser();
   const { id } = await params;
   const parsedId = IdInput.safeParse(id);
   if (!parsedId.success) return { title: "Project not found" };
 
-  const project = await getProject(parsedId.data);
+  const project = await getProject(parsedId.data, user.id);
   return {
     title: project ? `${project.name} | Project Tracker` : "Project not found",
     description: project?.description || "View project tasks and progress.",
@@ -43,6 +45,7 @@ export default async function ProjectPage({
   params: ProjectRouteParams;
   searchParams: Promise<SearchParams>;
 }) {
+  const user = await requireUser();
   const [{ id }, query] = await Promise.all([params, searchParams]);
   const parsedId = IdInput.safeParse(id);
   if (!parsedId.success) notFound();
@@ -56,9 +59,10 @@ export default async function ProjectPage({
     ...(parsedPriority.success ? { priority: parsedPriority.data } : {}),
     ...(search ? { q: search } : {}),
   };
-  const [project, tasks] = await Promise.all([
-    getProject(projectId),
-    getTasks(projectId, filters),
+  const [project, tasks, comments] = await Promise.all([
+    getProject(projectId, user.id),
+    getTasks(projectId, user.id, filters),
+    getTaskComments(projectId, user.id),
   ]);
 
   if (!project) notFound();
@@ -150,7 +154,7 @@ export default async function ProjectPage({
         </p>
       )}
 
-      <KanbanBoard projectId={project.id} tasks={tasks} />
+      <KanbanBoard projectId={project.id} tasks={tasks} comments={comments} />
 
       <section className="mt-10 max-w-2xl" aria-label="Create a task">
         <TaskForm projectId={project.id} />

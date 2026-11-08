@@ -6,7 +6,13 @@ import {
   updateTaskStatus,
   type ActionState,
 } from "@/app/actions";
-import type { Task, TaskPriority, TaskStatus } from "@/lib/queries";
+import type {
+  Task,
+  TaskComment,
+  TaskPriority,
+  TaskStatus,
+} from "@/lib/queries";
+import TaskComments from "@/app/projects/TaskComments";
 
 const initialState: ActionState = { ok: false, errors: {} };
 
@@ -33,9 +39,11 @@ function actionError(result: ActionState): string {
 export default function KanbanBoard({
   projectId,
   tasks,
+  comments,
 }: {
   projectId: number;
   tasks: Task[];
+  comments: TaskComment[];
 }) {
   const [optimisticTasks, setOptimisticTasks] = useOptimistic(
     tasks,
@@ -46,6 +54,13 @@ export default function KanbanBoard({
   );
   const [pending, startTransition] = useTransition();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const commentsByTask = new Map<number, TaskComment[]>();
+
+  for (const comment of comments) {
+    const taskComments = commentsByTask.get(comment.task_id) ?? [];
+    taskComments.push(comment);
+    commentsByTask.set(comment.task_id, taskComments);
+  }
 
   function moveTask(task: Task, status: TaskStatus) {
     const formData = new FormData();
@@ -131,69 +146,111 @@ export default function KanbanBoard({
                 </p>
               ) : (
                 <ul className="space-y-3">
-                  {columnTasks.map((task) => (
-                    <li
-                      className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
-                      key={task.id}
-                    >
-                      <h3 className="font-semibold leading-6 text-slate-950">
-                        {task.title}
-                      </h3>
-                      <div className="mt-3 flex flex-wrap items-center gap-2">
-                        <span
-                          className={`rounded-full px-2.5 py-1 text-xs font-semibold capitalize ${priorityClasses[task.priority]}`}
-                        >
-                          {task.priority}
-                        </span>
-                        {task.due_date && (
-                          <time
-                            className={`text-xs font-medium ${task.is_overdue ? "text-red-700" : "text-slate-500"}`}
-                            dateTime={task.due_date}
+                  {columnTasks.map((task) => {
+                    const taskComments = commentsByTask.get(task.id) ?? [];
+
+                    return (
+                      <li
+                        className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
+                        key={task.id}
+                      >
+                        <h3 className="font-semibold leading-6 text-slate-950">
+                          {task.title}
+                        </h3>
+                        <div className="mt-3 flex flex-wrap items-center gap-2">
+                          <span
+                            className={`rounded-full px-2.5 py-1 text-xs font-semibold capitalize ${priorityClasses[task.priority]}`}
                           >
-                            Due {task.due_date}
-                            {task.is_overdue ? " · Overdue" : ""}
-                          </time>
-                        )}
-                      </div>
-                      <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-3">
-                        <div className="flex gap-1">
+                            {task.priority}
+                          </span>
+                          {task.due_date && (
+                            <time
+                              className={`text-xs font-medium ${task.is_overdue ? "text-red-700" : "text-slate-500"}`}
+                              dateTime={task.due_date}
+                            >
+                              Due {task.due_date}
+                              {task.is_overdue ? " · Overdue" : ""}
+                            </time>
+                          )}
+                        </div>
+                        <details className="mt-4 border-t border-slate-100 pt-3">
+                          <summary className="cursor-pointer rounded-sm text-sm font-semibold text-indigo-700 hover:text-indigo-900">
+                            Task details &amp; comments ({taskComments.length})
+                          </summary>
+                          <div className="mt-3">
+                            {taskComments.length === 0 ? (
+                              <p className="text-sm text-slate-600">
+                                No comments yet.
+                              </p>
+                            ) : (
+                              <ul className="space-y-3">
+                                {taskComments.map((comment) => (
+                                  <li
+                                    className="rounded-lg bg-slate-50 p-3"
+                                    key={comment.id}
+                                  >
+                                    <p className="whitespace-pre-wrap break-words text-sm text-slate-800">
+                                      {comment.body}
+                                    </p>
+                                    <time
+                                      className="mt-2 block text-xs text-slate-500"
+                                      dateTime={comment.created_at}
+                                    >
+                                      {comment.created_at
+                                        .slice(0, 16)
+                                        .replace("T", " ")}{" "}
+                                      UTC
+                                    </time>
+                                  </li>
+                                ))}
+                              </ul>
+                            )}
+                            <TaskComments
+                              projectId={projectId}
+                              taskId={task.id}
+                            />
+                          </div>
+                        </details>
+                        <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-3">
+                          <div className="flex gap-1">
+                            <button
+                              aria-label={`Move ${task.title} left`}
+                              className="rounded-md px-2 py-1 text-sm font-medium text-slate-600 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"
+                              disabled={pending || columnIndex === 0}
+                              onClick={() =>
+                                moveTask(task, columns[columnIndex - 1].status)
+                              }
+                              type="button"
+                            >
+                              &larr; Left
+                            </button>
+                            <button
+                              aria-label={`Move ${task.title} right`}
+                              className="rounded-md px-2 py-1 text-sm font-medium text-slate-600 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"
+                              disabled={
+                                pending || columnIndex === columns.length - 1
+                              }
+                              onClick={() =>
+                                moveTask(task, columns[columnIndex + 1].status)
+                              }
+                              type="button"
+                            >
+                              Right &rarr;
+                            </button>
+                          </div>
                           <button
-                            aria-label={`Move ${task.title} left`}
-                            className="rounded-md px-2 py-1 text-sm font-medium text-slate-600 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"
-                            disabled={pending || columnIndex === 0}
-                            onClick={() =>
-                              moveTask(task, columns[columnIndex - 1].status)
-                            }
+                            aria-label={`Delete ${task.title}`}
+                            className="rounded-md px-2 py-1 text-sm font-medium text-red-700 hover:bg-red-50 disabled:opacity-50"
+                            disabled={pending}
+                            onClick={() => removeTask(task)}
                             type="button"
                           >
-                            &larr; Left
-                          </button>
-                          <button
-                            aria-label={`Move ${task.title} right`}
-                            className="rounded-md px-2 py-1 text-sm font-medium text-slate-600 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"
-                            disabled={
-                              pending || columnIndex === columns.length - 1
-                            }
-                            onClick={() =>
-                              moveTask(task, columns[columnIndex + 1].status)
-                            }
-                            type="button"
-                          >
-                            Right &rarr;
+                            Delete
                           </button>
                         </div>
-                        <button
-                          aria-label={`Delete ${task.title}`}
-                          className="rounded-md px-2 py-1 text-sm font-medium text-red-700 hover:bg-red-50 disabled:opacity-50"
-                          disabled={pending}
-                          onClick={() => removeTask(task)}
-                          type="button"
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    </li>
-                  ))}
+                      </li>
+                    );
+                  })}
                 </ul>
               )}
             </section>

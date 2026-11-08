@@ -2,10 +2,12 @@
 
 import { revalidatePath } from "next/cache";
 import { sql } from "@/lib/db";
+import { requireUser } from "@/lib/session";
 import {
   DeleteProjectInput,
   DeleteTaskInput,
   ProjectInput,
+  TaskCommentInput,
   TaskInput,
   UpdateTaskStatusInput,
 } from "@/lib/validation";
@@ -45,6 +47,7 @@ export async function createProject(
   _previousState: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
+  const user = await requireUser();
   const parsed = ProjectInput.safeParse({
     name: formData.get("name"),
     description: formData.get("description") ?? "",
@@ -55,8 +58,13 @@ export async function createProject(
 
   try {
     await sql`
-      INSERT INTO projects (name, description, color)
-      VALUES (${parsed.data.name}, ${parsed.data.description}, ${parsed.data.color})
+      INSERT INTO projects (name, description, color, owner_id)
+      VALUES (
+        ${parsed.data.name},
+        ${parsed.data.description},
+        ${parsed.data.color},
+        ${user.id}
+      )
     `;
   } catch {
     return databaseFailure(
@@ -73,6 +81,7 @@ export async function createTask(
   _previousState: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
+  const user = await requireUser();
   const parsed = TaskInput.safeParse({
     projectId: formData.get("projectId"),
     title: formData.get("title"),
@@ -90,7 +99,7 @@ export async function createTask(
       INSERT INTO tasks (project_id, title, status, priority, due_date)
       SELECT p.id, ${title}, ${status}, ${priority}, ${due_date ?? null}::date
       FROM projects AS p
-      WHERE p.id = ${projectId}
+      WHERE p.id = ${projectId} AND p.owner_id = ${user.id}
       RETURNING id
     `;
   } catch {
@@ -112,6 +121,7 @@ export async function updateTaskStatus(
   _previousState: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
+  const user = await requireUser();
   const parsed = UpdateTaskStatusInput.safeParse({
     projectId: formData.get("projectId"),
     taskId: formData.get("taskId"),
@@ -126,7 +136,12 @@ export async function updateTaskStatus(
     updated = await sql`
       UPDATE tasks
       SET status = ${status}
-      WHERE id = ${taskId} AND project_id = ${projectId}
+      WHERE id = ${taskId}
+        AND project_id = ${projectId}
+        AND EXISTS (
+          SELECT 1 FROM projects AS p
+          WHERE p.id = ${projectId} AND p.owner_id = ${user.id}
+        )
       RETURNING id
     `;
   } catch {
@@ -150,6 +165,7 @@ export async function deleteTask(
   _previousState: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
+  const user = await requireUser();
   const parsed = DeleteTaskInput.safeParse({
     projectId: formData.get("projectId"),
     taskId: formData.get("taskId"),
@@ -162,7 +178,12 @@ export async function deleteTask(
   try {
     deleted = await sql`
       DELETE FROM tasks
-      WHERE id = ${taskId} AND project_id = ${projectId}
+      WHERE id = ${taskId}
+        AND project_id = ${projectId}
+        AND EXISTS (
+          SELECT 1 FROM projects AS p
+          WHERE p.id = ${projectId} AND p.owner_id = ${user.id}
+        )
       RETURNING id
     `;
   } catch {
@@ -186,6 +207,7 @@ export async function deleteProject(
   _previousState: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
+  const user = await requireUser();
   const parsed = DeleteProjectInput.safeParse({
     projectId: formData.get("projectId"),
   });
@@ -197,7 +219,7 @@ export async function deleteProject(
   try {
     deleted = await sql`
       DELETE FROM projects
-      WHERE id = ${projectId}
+      WHERE id = ${projectId} AND owner_id = ${user.id}
       RETURNING id
     `;
   } catch {
@@ -213,4 +235,48 @@ export async function deleteProject(
   revalidatePath(`/projects/${projectId}`);
 
   return { ...initialActionState, ok: true, message: "Project deleted." };
+}
+
+export async function addTaskComment(
+  _previousState: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const user = await requireUser();
+  const parsed = TaskCommentInput.safeParse({
+    projectId: formData.get("projectId"),
+    taskId: formData.get("taskId"),
+    body: formData.get("body"),
+  });
+
+  if (!parsed.success) return validationFailure(parsed.error);
+
+  const { projectId, taskId, body } = parsed.data;
+  let inserted: unknown[];
+  try {
+    inserted = await sql`
+      INSERT INTO task_comments (task_id, author_id, body)
+      SELECT t.id, ${user.id}, ${body}
+      FROM tasks AS t
+      JOIN projects AS p ON p.id = t.project_id
+      WHERE t.id = ${taskId}
+        AND p.id = ${projectId}
+        AND p.owner_id = ${user.id}
+      RETURNING id
+    `;
+  } catch {
+    return databaseFailure(
+      "add task comment",
+      "Could not add your comment. Please try again.",
+    );
+  }
+
+  if (inserted.length === 0) {
+    return {
+      ok: false,
+      errors: { taskId: ["Task not found in this project."] },
+    };
+  }
+
+  revalidatePath(`/projects/${projectId}`);
+  return { ...initialActionState, ok: true, message: "Comment added." };
 }
