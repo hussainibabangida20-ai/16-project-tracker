@@ -1,5 +1,7 @@
 # Project Tracker
 
+[![CI](https://github.com/hussainibabangida20-ai/16-project-tracker/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/hussainibabangida20-ai/16-project-tracker/actions/workflows/ci.yml)
+
 A project and task tracker built with Next.js 15, the App Router, TypeScript, Tailwind CSS, Zod, and Neon Postgres.
 
 ## Features
